@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101c19" />
+    <meta
+      name="description"
+      content="FlowPilot turns natural-language requests into safe, reviewable workspace actions."
+    />
+    <title>FlowPilot — AI Workspace Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#agent-composer">Skip to agent</a>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div>
+            <strong>FlowPilot</strong>
+            <small>Agent console</small>
+          </div>
+        </div>
+
+        <nav>
+          <button class="nav-item is-active" data-view="command" type="button">
+            <span class="nav-icon">⌁</span> Command
+          </button>
+          <button class="nav-item" data-view="workspace" type="button">
+            <span class="nav-icon">▦</span> Workspace
+          </button>
+          <button class="nav-item" data-view="audit" type="button">
+            <span class="nav-icon">≡</span> Audit log
+            <span class="nav-count" id="audit-count">0</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="safety-card">
+            <span class="pulse-dot"></span>
+            <div>
+              <strong>Safety layer active</strong>
+              <small>Schema validation · review · confirmation</small>
+            </div>
+          </div>
+          <button class="settings-button" id="settings-button" type="button">
+            <span>⚙</span> Model settings
+          </button>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">AI ACTION AGENT / LIVE SANDBOX</p>
+            <h1 id="view-title">Command center</h1>
+          </div>
+          <div class="topbar-meta">
+            <div class="model-pill">
+              <span class="pulse-dot"></span>
+              <span id="active-model-label">Demo planner</span>
+            </div>
+            <button class="icon-button" id="reset-button" type="button" title="Reset demo workspace" aria-label="Reset demo workspace">↻</button>
+          </div>
+        </header>
+
+        <section class="view is-active" id="command-view" data-view-panel="command">
+          <div class="command-grid">
+            <section class="hero-panel">
+              <div class="hero-copy">
+                <p class="section-kicker"><span>01</span> Describe the outcome</p>
+                <h2>Give your workspace<br />a job to do.</h2>
+                <p>
+                  FlowPilot converts plain language into a constrained action plan. Nothing runs until you review it.
+                </p>
+              </div>
+
+              <form id="agent-composer" class="composer">
+                <label for="request-input">What should the agent handle?</label>
+                <textarea
+                  id="request-input"
+                  rows="5"
+                  maxlength="1200"
+                  placeholder="Example: Create a Launch project, add a high-priority task to draft the brief, and save a note with three success metrics."
+                  required
+                ></textarea>
+                <div class="composer-footer">
+                  <span id="char-count">0 / 1200</span>
+                  <button class="primary-button" id="plan-button" type="submit">
+                    <span>Build action plan</span><span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </form>
+
+              <div class="suggestions" aria-label="Example requests">
+                <button type="button" data-prompt="Create a project called Biology Final, add a high-priority task called Research credible sources due 2026-12-01, and save a note titled Thesis ideas with three possible angles.">Plan a class project</button>
+                <button type="button" data-prompt="Create a note called Weekly review that summarizes my workspace, then mark the task Draft launch brief as complete.">Run a weekly review</button>
+                <button type="button" data-prompt="Create a file at reports/status.md with a short project status template, then move inbox/ideas.txt to archive/ideas.txt.">Organize files</button>
+                <button type="button" data-prompt="Delete all completed tasks and remove the file archive/old-plan.txt.">Try a destructive action</button>
+              </div>
+            </section>
+
+            <aside class="telemetry-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="section-kicker"><span>LIVE</span> Workspace pulse</p>
+                  <h3>Current state</h3>
+                </div>
+                <span class="status-tag">LOCAL</span>
+              </div>
+              <div class="metric-grid">
+                <article><strong id="metric-projects">0</strong><span>Projects</span></article>
+                <article><strong id="metric-tasks">0</strong><span>Open tasks</span></article>
+                <article><strong id="metric-notes">0</strong><span>Notes</span></article>
+                <article><strong id="metric-files">0</strong><span>Files</span></article>
+              </div>
+              <div class="activity-strip">
+                <div class="activity-head"><span>Recent activity</span><span id="last-run-time">No runs yet</span></div>
+                <div id="mini-activity" class="mini-activity">
+                  <div class="empty-mini">Agent actions will appear here.</div>
+                </div>
+              </div>
+              <div class="boundary-note">
+                <span>◎</span>
+                <p><strong>Sandbox boundary</strong> Actions affect only this browser workspace—never your device.</p>
+              </div>
+            </aside>
+          </div>
+
+          <section class="plan-panel is-hidden" id="plan-panel" aria-live="polite">
+            <div class="plan-header">
+              <div>
+                <p class="section-kicker"><span>02</span> Review the plan</p>
+                <h2 id="plan-summary">Action plan ready</h2>
+                <p id="plan-rationale"></p>
+              </div>
+              <div class="plan-header-actions">
+                <button class="secondary-button" id="discard-plan" type="button">Discard</button>
+                <button class="primary-button" id="execute-plan" type="button">Execute plan <span>→</span></button>
+              </div>
+            </div>
+            <div class="plan-list" id="plan-list"></div>
+          </section>
+        </section>
+
+        <section class="view" id="workspace-view" data-view-panel="workspace">
+          <div class="workspace-toolbar">
+            <div>
+              <p class="section-kicker"><span>STATE</span> Persistent browser data</p>
+              <h2>Agent workspace</h2>
+            </div>
+            <button class="secondary-button" id="undo-button" type="button" disabled>Undo last run</button>
+          </div>
+          <div class="workspace-columns">
+            <section class="data-card">
+              <div class="data-card-title"><h3>Tasks</h3><span id="task-count"></span></div>
+              <div id="task-list" class="data-list"></div>
+            </section>
+            <section class="data-card">
+              <div class="data-card-title"><h3>Notes</h3><span id="note-count"></span></div>
+              <div id="note-list" class="data-list"></div>
+            </section>
+            <section class="data-card files-card">
+              <div class="data-card-title"><h3>Virtual files</h3><span id="file-count"></span></div>
+              <div id="file-list" class="file-tree"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="audit-view" data-view-panel="audit">
+          <div class="workspace-toolbar">
+            <div>
+              <p class="section-kicker"><span>TRACE</span> Immutable action history</p>
+              <h2>Audit log</h2>
+            </div>
+            <button class="secondary-button" id="export-log" type="button">Export JSON</button>
+          </div>
+          <div class="audit-table-wrap">
+            <table class="audit-table">
+              <thead><tr><th>Time</th><th>Status</th><th>Action</th><th>Details</th><th>Source</th></tr></thead>
+              <tbody id="audit-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+    <dialog id="settings-dialog">
+      <form method="dialog" class="dialog-card" id="settings-form">
+        <div class="dialog-header">
+          <div><p class="section-kicker"><span>MODEL</span> Planner connection</p><h2>Model settings</h2></div>
+          <button class="icon-button" value="cancel" aria-label="Close settings">×</button>
+        </div>
+        <label class="radio-card">
+          <input type="radio" name="planner" value="demo" checked />
+          <span><strong>Demo planner</strong><small>Runs without a key. Ideal for a reliable live demo.</small></span>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="planner" value="openai" />
+          <span><strong>OpenAI API</strong><small>Uses a real LLM to generate the constrained JSON plan.</small></span>
+        </label>
+        <div class="api-fields" id="api-fields">
+          <label for="api-key">OpenAI API key</label>
+          <input id="api-key" type="password" autocomplete="off" placeholder="sk-…" />
+          <label for="model-name">Model</label>
+          <select id="model-name"><option value="gpt-4o-mini">gpt-4o-mini</option><option value="gpt-4.1-mini">gpt-4.1-mini</option></select>
+          <p class="field-note">The key stays in session memory and is never written to local storage or the audit log.</p>
+        </div>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">Cancel</button>
+          <button class="primary-button" id="save-settings" value="default">Save settings</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="confirm-dialog">
+      <form method="dialog" class="dialog-card compact">
+        <div class="danger-emblem">!</div>
+        <h2>Confirm destructive actions</h2>
+        <p id="confirm-copy">This plan includes actions that remove data.</p>
+        <div id="danger-list" class="danger-list"></div>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">Cancel</button>
+          <button class="danger-button" value="confirm">Confirm & execute</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "flowpilot-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A safety-first AI workspace agent with validated actions and audit logging.",
+  "scripts": {
+    "test": "node tests/run-tests.mjs",
+    "check": "node --check dist/app.js && node tests/run-tests.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
