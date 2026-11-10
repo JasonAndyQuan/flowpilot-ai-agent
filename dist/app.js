@@ -26,6 +26,7 @@ const elements = {
   executePlan: $("#execute-plan"),
   discardPlan: $("#discard-plan"),
   settingsDialog: $("#settings-dialog"),
+  detailDialog: $("#detail-dialog"),
   confirmDialog: $("#confirm-dialog"),
   apiFields: $("#api-fields"),
   apiKey: $("#api-key"),
@@ -38,6 +39,7 @@ let workspace = loadWorkspace();
 let currentPlan = null;
 let currentPlanSource = "demo-planner";
 let plannerSettings = loadPlannerSettings();
+let activeDetailFile = null;
 
 function loadWorkspace() {
   try {
@@ -121,13 +123,89 @@ function renderMetrics() {
   $("#last-run-time").textContent = recent[0] ? formatTime(recent[0].time) : "No runs yet";
 }
 
+function addDetailMeta(label, value) {
+  if (!value) return;
+  const chip = el("span", "detail-chip");
+  chip.append(el("small", "", label), el("strong", "", value));
+  $("#detail-meta").append(chip);
+}
+
+function openDetail({ type, title, content, metadata = [], file = null }) {
+  $("#detail-type").textContent = type.toUpperCase();
+  $("#detail-title").textContent = title;
+  $("#detail-content-heading").textContent = file ? "File source" : type === "note" ? "Full note" : "Description";
+  $("#detail-meta").replaceChildren();
+  metadata.forEach(([label, value]) => addDetailMeta(label, value));
+
+  const contentRoot = $("#detail-content");
+  contentRoot.replaceChildren();
+  if (file) contentRoot.append(el("pre", "detail-code", content || "This file is empty."));
+  else contentRoot.append(el("p", "detail-copy", content || "No additional description was provided."));
+
+  activeDetailFile = file ? { path: file.path, content: content || "" } : null;
+  $("#detail-file-actions").classList.toggle("is-hidden", !file);
+  const isHtml = Boolean(file && /\.html?$/i.test(file.path));
+  $("#detail-preview-section").classList.toggle("is-hidden", !isHtml);
+  if (isHtml) {
+    const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:;">`;
+    const source = content || "";
+    if (/<html[\s>]/i.test(source)) {
+      $("#detail-preview").srcdoc = /<head[\s>]/i.test(source)
+        ? source.replace(/<head([^>]*)>/i, `<head$1>${csp}`)
+        : source.replace(/<html([^>]*)>/i, `<html$1><head>${csp}</head>`);
+    } else {
+      $("#detail-preview").srcdoc = `<!doctype html><html><head>${csp}</head><body>${source}</body></html>`;
+    }
+  } else {
+    $("#detail-preview").srcdoc = "";
+  }
+  elements.detailDialog.showModal();
+}
+
+function openTaskDetail(task) {
+  openDetail({
+    type: "task",
+    title: task.title,
+    content: task.description,
+    metadata: [
+      ["Project", task.project || "Inbox"],
+      ["Status", task.completed ? "Completed" : "Open"],
+      ["Priority", task.priority || "Medium"],
+      ["Due", task.due || "No due date"],
+      ["Created", task.createdAt ? formatTime(task.createdAt) : "Unknown"],
+    ],
+  });
+}
+
+function openNoteDetail(note) {
+  openDetail({
+    type: "note",
+    title: note.title,
+    content: note.content,
+    metadata: [["Project", note.project || "Inbox"], ["Created", note.createdAt ? formatTime(note.createdAt) : "Unknown"]],
+  });
+}
+
+function openFileDetail(path, content) {
+  openDetail({
+    type: "file",
+    title: path,
+    content,
+    file: { path },
+    metadata: [["Size", `${new Blob([content]).size} bytes`], ["Format", path.includes(".") ? path.split(".").pop().toUpperCase() : "Text"]],
+  });
+}
+
 function renderTasks() {
   const container = $("#task-list");
   container.replaceChildren();
   $("#task-count").textContent = `${workspace.tasks.length} total`;
   if (!workspace.tasks.length) return container.append(el("div", "empty-state", "No tasks yet."));
   workspace.tasks.forEach((task) => {
-    const row = el("div", "data-row");
+    const row = el("button", "data-row interactive-row");
+    row.type = "button";
+    row.setAttribute("aria-label", `View task details: ${task.title}`);
+    row.addEventListener("click", () => openTaskDetail(task));
     row.append(el("span", `check-mark${task.completed ? " done" : ""}`, task.completed ? "✓" : ""));
     const copy = el("div");
     const title = el("strong", "", task.title);
@@ -147,7 +225,10 @@ function renderNotes() {
   $("#note-count").textContent = `${workspace.notes.length} total`;
   if (!workspace.notes.length) return container.append(el("div", "empty-state", "No notes yet."));
   workspace.notes.forEach((note, index) => {
-    const row = el("div", "data-row");
+    const row = el("button", "data-row interactive-row");
+    row.type = "button";
+    row.setAttribute("aria-label", `View note details: ${note.title}`);
+    row.addEventListener("click", () => openNoteDetail(note));
     const swatch = el("span", "note-swatch");
     swatch.style.background = ["#f7bf52", "#67db99", "#70a7ff", "#ff8c79"][index % 4];
     const copy = el("div");
@@ -164,7 +245,10 @@ function renderFiles() {
   $("#file-count").textContent = `${files.length} total`;
   if (!files.length) return container.append(el("div", "empty-state", "No virtual files yet."));
   files.forEach(([path, content]) => {
-    const row = el("div", "file-row");
+    const row = el("button", "file-row interactive-file-row");
+    row.type = "button";
+    row.setAttribute("aria-label", `View file details: ${path}`);
+    row.addEventListener("click", () => openFileDetail(path, content));
     row.append(el("span", "", "◇"), el("span", "", path), el("small", "", `${new Blob([content]).size} B`));
     container.append(row);
   });
@@ -374,6 +458,28 @@ function exportAudit() {
   URL.revokeObjectURL(url);
 }
 
+async function copyActiveFile() {
+  if (!activeDetailFile) return;
+  try {
+    await navigator.clipboard.writeText(activeDetailFile.content);
+    toast("File source copied to the clipboard.");
+  } catch {
+    toast("Clipboard access was blocked by the browser.", "error");
+  }
+}
+
+function downloadActiveFile() {
+  if (!activeDetailFile) return;
+  const extension = activeDetailFile.path.split(".").pop().toLowerCase();
+  const mimeTypes = { html: "text/html", htm: "text/html", css: "text/css", js: "text/javascript", json: "application/json", md: "text/markdown", txt: "text/plain" };
+  const url = URL.createObjectURL(new Blob([activeDetailFile.content], { type: mimeTypes[extension] || "text/plain" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = activeDetailFile.path.split("/").pop();
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 function resetWorkspace() {
   if (!window.confirm("Reset the entire FlowPilot demo workspace? This clears local projects, tasks, notes, files, and logs.")) return;
   workspace = createInitialState();
@@ -400,6 +506,10 @@ function bindEvents() {
   $$('input[name="planner"]').forEach((radio) => radio.addEventListener("change", () => elements.apiFields.classList.toggle("is-visible", radio.value === "openai" && radio.checked)));
   $("#undo-button").addEventListener("click", undoLastRun);
   $("#export-log").addEventListener("click", exportAudit);
+  $("#detail-close").addEventListener("click", () => elements.detailDialog.close());
+  $("#copy-file").addEventListener("click", copyActiveFile);
+  $("#download-file").addEventListener("click", downloadActiveFile);
+  elements.detailDialog.addEventListener("close", () => { activeDetailFile = null; $("#detail-preview").srcdoc = ""; });
   $("#reset-button").addEventListener("click", resetWorkspace);
 }
 

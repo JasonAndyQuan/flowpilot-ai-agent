@@ -184,6 +184,9 @@ main { min-width: 0; }
 .data-list { display: grid; }
 .data-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 15px 0; border-bottom: 1px solid #eceeea; }
 .data-row:last-child { border-bottom: 0; }
+.interactive-row { width: 100%; grid-template-columns: auto 1fr auto auto; border: 0; border-bottom: 1px solid #eceeea; background: transparent; color: inherit; text-align: left; cursor: pointer; transition: background .18s ease, padding .18s ease; }
+.interactive-row:hover { padding-left: 10px; padding-right: 10px; background: #f5faf6; }
+.interactive-row::after, .interactive-file-row::after { content: "↗"; align-self: center; color: #7d9188; font: 500 10px "DM Mono", monospace; }
 .check-mark { width: 18px; height: 18px; display: grid; place-items: center; border: 1px solid #aeb9b3; border-radius: 50%; color: white; font-size: 10px; }
 .check-mark.done { background: #2b7b4c; border-color: #2b7b4c; }
 .data-row strong { display: block; font-size: 12px; }
@@ -193,9 +196,11 @@ main { min-width: 0; }
 .note-swatch { width: 5px; height: 34px; background: var(--amber); }
 .empty-state { padding: 45px 0; text-align: center; color: #909b96; font-size: 12px; }
 .file-tree { padding-top: 7px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 30px; }
-.file-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #eceeea; font: 400 11px "DM Mono", monospace; overflow-wrap: anywhere; }
+.file-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border: 0; border-bottom: 1px solid #eceeea; background: transparent; color: inherit; text-align: left; font: 400 11px "DM Mono", monospace; overflow-wrap: anywhere; }
 .file-row span:first-child { color: #2f8c57; }
 .file-row small { margin-left: auto; color: #9ba59f; }
+.interactive-file-row { width: 100%; cursor: pointer; transition: background .18s ease, padding .18s ease; }
+.interactive-file-row:hover { padding-left: 10px; padding-right: 10px; background: #f5faf6; }
 
 .audit-table-wrap { overflow-x: auto; box-shadow: 0 14px 45px rgba(16,28,25,.055); }
 .audit-table { width: 100%; border-collapse: collapse; font-size: 11px; }
@@ -235,6 +240,26 @@ dialog::backdrop { background: rgba(10,20,17,.6); backdrop-filter: blur(4px); }
 .dialog-card.compact > p { color: var(--muted); font-size: 12px; }
 .danger-list { margin-top: 18px; display: grid; gap: 7px; text-align: left; }
 .danger-list div { padding: 11px; border: 1px solid #f0c5bf; background: #fff6f4; color: #853b31; font: 400 10px "DM Mono", monospace; }
+.is-hidden { display: none !important; }
+
+dialog#detail-dialog { width: min(920px, calc(100vw - 30px)); max-height: calc(100vh - 40px); overflow: auto; }
+.detail-dialog-card { padding: clamp(24px, 4vw, 40px); }
+.detail-header { margin-bottom: 20px; }
+.detail-header h2 { max-width: 720px; overflow-wrap: anywhere; }
+.detail-meta { display: flex; flex-wrap: wrap; gap: 8px; padding: 15px 0 22px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.detail-chip { min-width: 120px; padding: 9px 11px; background: #f3f6f2; }
+.detail-chip small, .detail-chip strong { display: block; }
+.detail-chip small { color: #87948f; font: 500 8px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+.detail-chip strong { margin-top: 4px; font-size: 11px; text-transform: capitalize; }
+.detail-section { margin-top: 24px; }
+.detail-section > h3, .preview-heading h3 { margin: 0 0 11px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.detail-content { max-height: 340px; overflow: auto; border: 1px solid var(--line); background: #fbfcf8; }
+.detail-copy { min-height: 110px; margin: 0; padding: 20px; white-space: pre-wrap; color: #44554f; font-size: 13px; line-height: 1.8; }
+.detail-code { min-height: 140px; margin: 0; padding: 20px; overflow: auto; white-space: pre-wrap; color: #d9f4e3; background: var(--deep); font: 400 11px/1.7 "DM Mono", monospace; }
+.detail-file-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 14px; }
+.preview-heading { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.preview-heading span { color: #8b9792; font: 400 8px "DM Mono", monospace; text-transform: uppercase; }
+#detail-preview { width: 100%; height: 420px; border: 1px solid var(--line); background: white; }
 
 @media (max-width: 1050px) {
   .command-grid { grid-template-columns: 1fr; }

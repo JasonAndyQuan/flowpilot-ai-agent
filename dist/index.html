@@ -222,6 +222,34 @@
       </form>
     </dialog>
 
+    <dialog id="detail-dialog" aria-labelledby="detail-title">
+      <div class="dialog-card detail-dialog-card">
+        <div class="dialog-header detail-header">
+          <div>
+            <p class="section-kicker"><span id="detail-type">DETAIL</span> Workspace item</p>
+            <h2 id="detail-title">Item details</h2>
+          </div>
+          <button class="icon-button" id="detail-close" type="button" aria-label="Close details">×</button>
+        </div>
+        <div class="detail-meta" id="detail-meta"></div>
+        <section class="detail-section">
+          <h3 id="detail-content-heading">Details</h3>
+          <div class="detail-content" id="detail-content"></div>
+        </section>
+        <div class="detail-file-actions is-hidden" id="detail-file-actions">
+          <button class="secondary-button" id="copy-file" type="button">Copy source</button>
+          <button class="primary-button" id="download-file" type="button">Download file</button>
+        </div>
+        <section class="detail-section preview-section is-hidden" id="detail-preview-section">
+          <div class="preview-heading">
+            <h3>Sandboxed preview</h3>
+            <span>Scripts and network access disabled</span>
+          </div>
+          <iframe id="detail-preview" title="Virtual HTML file preview" sandbox=""></iframe>
+        </section>
+      </div>
+    </dialog>
+
     <dialog id="confirm-dialog">
       <form method="dialog" class="dialog-card compact">
         <div class="danger-emblem">!</div>

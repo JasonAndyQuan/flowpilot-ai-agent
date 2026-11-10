@@ -56,6 +56,13 @@ test("validates a supported plan", () => {
   assert.equal(plan.actions[0].params.name, "Research");
 });
 
+test("task descriptions are validated and persisted", () => {
+  const plan = validatePlan({ actions: [{ type: "create_task", params: { title: "Design landing page", description: "Create responsive service, pricing, booking, and contact sections.", priority: "high" } }] });
+  assert.equal(plan.actions[0].params.description, "Create responsive service, pricing, booking, and contact sections.");
+  const { state } = executePlan(plan, createInitialState());
+  assert.equal(state.tasks[0].description, "Create responsive service, pricing, booking, and contact sections.");
+});
+
 test("rejects unsupported action types", () => {
   assert.throws(() => validatePlan({ actions: [{ type: "run_shell", params: { command: "rm -rf /" } }] }), /unsupported command/i);
 });

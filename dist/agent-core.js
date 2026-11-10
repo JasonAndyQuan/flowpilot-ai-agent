@@ -85,6 +85,7 @@ function sanitizeParams(type, params) {
     case "create_task":
       output.title = cleanText(params.title, "Task title", 140);
       if (params.project) output.project = cleanText(params.project, "Project", 80);
+      if (params.description) output.description = cleanText(params.description, "Task description", 1200);
       if (params.due) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(params.due) || Number.isNaN(Date.parse(`${params.due}T00:00:00Z`))) throw new Error("Task due date must use YYYY-MM-DD.");
         output.due = params.due;
@@ -284,7 +285,7 @@ export function executePlan(plan, currentState, options = {}) {
         }
         case "create_task": {
           if (p.project && !state.projects.some((project) => project.name.toLowerCase() === p.project.toLowerCase())) throw new Error(`Project “${p.project}” does not exist.`);
-          state.tasks.push({ id: id("task"), title: p.title, project: p.project || "Inbox", due: p.due || null, priority: p.priority, completed: false, createdAt: now });
+          state.tasks.push({ id: id("task"), title: p.title, description: p.description || "", project: p.project || "Inbox", due: p.due || null, priority: p.priority, completed: false, createdAt: now });
           message = `Added task “${p.title}”.`;
           break;
         }
@@ -359,17 +360,20 @@ SECURITY RULES:
 - Never invent existing file paths or task names for move/delete/complete operations; use workspace context.
 - Use relative virtual paths only. Never use .., absolute paths, executable extensions, or more than 12 actions.
 - Destructive actions are allowed in a plan because the executor requires separate confirmation. Do not claim an action already happened.
+- Give created tasks a concise, actionable description when the request implies implementation work.
+- Notes should contain useful, complete detail rather than merely repeating the user's keywords.
+- When creating a file, put the complete requested file contents in content, not a description of the file.
 - Output JSON only. No markdown fences.
 
 OUTPUT SHAPE:
 {"summary":"short outcome","rationale":"one concise sentence","actions":[{"type":"action_name","params":{}}]}
 
 ALLOWED ACTIONS:
-create_project {name, color?}; create_task {title, project?, due? (YYYY-MM-DD), priority? (low|medium|high)}; complete_task {title}; delete_completed_tasks {}; create_note {title, content, project?}; create_file {path, content}; move_file {from, to}; delete_file {path}; summarize_workspace {}.
+create_project {name, color?}; create_task {title, description?, project?, due? (YYYY-MM-DD), priority? (low|medium|high)}; complete_task {title}; delete_completed_tasks {}; create_note {title, content, project?}; create_file {path, content}; move_file {from, to}; delete_file {path}; summarize_workspace {}.
 
 FEW-SHOT EXAMPLE:
 User: Create a project called Research and add a high priority task called Interview participants due 2026-12-05.
-Assistant: {"summary":"Set up the Research project","rationale":"The project must exist before its task can be added.","actions":[{"type":"create_project","params":{"name":"Research","color":"#67db99"}},{"type":"create_task","params":{"title":"Interview participants","project":"Research","due":"2026-12-05","priority":"high"}}]}
+Assistant: {"summary":"Set up the Research project","rationale":"The project must exist before its task can be added.","actions":[{"type":"create_project","params":{"name":"Research","color":"#67db99"}},{"type":"create_task","params":{"title":"Interview participants","description":"Recruit five target users, prepare the interview guide, and record recurring themes.","project":"Research","due":"2026-12-05","priority":"high"}}]}
 
 CURRENT WORKSPACE CONTEXT:
 ${JSON.stringify(context)}`;
