@@ -7,6 +7,7 @@ import {
   deepClone,
   executePlan,
   isActionDestructive,
+  migrateWorkspace,
   validatePlan,
 } from "./agent-core.js";
 
@@ -44,7 +45,9 @@ function loadWorkspace() {
     if (!raw) return createInitialState();
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed.projects) || !Array.isArray(parsed.tasks) || !Array.isArray(parsed.notes) || !parsed.files || !Array.isArray(parsed.audit)) throw new Error("Invalid stored state");
-    return parsed;
+    const migrated = migrateWorkspace(parsed);
+    if (migrated.version !== parsed.version) localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    return migrated;
   } catch {
     return createInitialState();
   }

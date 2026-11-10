@@ -5,12 +5,50 @@ import {
   createInitialState,
   executePlan,
   isActionDestructive,
+  migrateWorkspace,
   validatePlan,
   validateVirtualPath,
 } from "../dist/agent-core.js";
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
+
+test("new workspaces start empty", () => {
+  const state = createInitialState();
+  assert.deepEqual(state.projects, []);
+  assert.deepEqual(state.tasks, []);
+  assert.deepEqual(state.notes, []);
+  assert.deepEqual(state.files, {});
+  assert.deepEqual(state.audit, []);
+});
+
+test("migration removes only seeded records and preserves user actions", () => {
+  const legacy = {
+    version: 1,
+    projects: [
+      { id: "project_launch", name: "Launch" },
+      { id: "project_user", name: "Pet Grooming Website" },
+    ],
+    tasks: [
+      { id: "task_brief", title: "Draft launch brief" },
+      { id: "task_user", title: "Design landing page" },
+    ],
+    notes: [{ id: "note_northstar", title: "North-star metric" }],
+    files: {
+      "README.md": "# FlowPilot workspace\nThis is a safe virtual filesystem.",
+      "pet-grooming/index.html": "<h1>Pet Grooming</h1>",
+    },
+    audit: [{ id: "audit_user", status: "success" }],
+    lastSnapshot: null,
+  };
+  const migrated = migrateWorkspace(legacy);
+  assert.equal(migrated.version, 2);
+  assert.deepEqual(migrated.projects.map((project) => project.id), ["project_user"]);
+  assert.deepEqual(migrated.tasks.map((task) => task.id), ["task_user"]);
+  assert.deepEqual(migrated.notes, []);
+  assert.deepEqual(migrated.files, { "pet-grooming/index.html": "<h1>Pet Grooming</h1>" });
+  assert.equal(migrated.audit.length, 1);
+});
 
 test("validates a supported plan", () => {
   const plan = validatePlan({ summary: "Create a project", actions: [{ type: "create_project", params: { name: "Research" } }] });
@@ -69,6 +107,7 @@ test("executor performs cross-domain operations and writes audit records", () =>
 
 test("executor blocks destructive actions without confirmation", () => {
   const initial = createInitialState();
+  initial.files["archive/old-plan.txt"] = "Old plan";
   const plan = validatePlan({ actions: [{ type: "delete_file", params: { path: "archive/old-plan.txt" } }] });
   const { state, results } = executePlan(plan, initial, { allowDestructive: false });
   assert.equal(results[0].status, "blocked");
@@ -78,6 +117,7 @@ test("executor blocks destructive actions without confirmation", () => {
 
 test("executor allows a confirmed destructive action", () => {
   const initial = createInitialState();
+  initial.files["archive/old-plan.txt"] = "Old plan";
   const plan = validatePlan({ actions: [{ type: "delete_file", params: { path: "archive/old-plan.txt" } }] });
   const { state, results } = executePlan(plan, initial, { allowDestructive: true });
   assert.equal(results[0].status, "success");
@@ -86,6 +126,7 @@ test("executor allows a confirmed destructive action", () => {
 
 test("file overwrite is dynamically classified as destructive", () => {
   const initial = createInitialState();
+  initial.files["README.md"] = "Existing content";
   const plan = validatePlan({ actions: [{ type: "create_file", params: { path: "README.md", content: "Replacement" } }] });
   assert.equal(isActionDestructive(plan.actions[0], initial), true);
 });

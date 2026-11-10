@@ -16,26 +16,39 @@ const COLORS = ["#67db99", "#70a7ff", "#f7bf52", "#ff8c79", "#b29cff"];
 
 export function createInitialState() {
   return {
-    version: 1,
-    projects: [
-      { id: "project_launch", name: "Launch", color: "#67db99", createdAt: "2026-11-10T17:00:00.000Z" },
-      { id: "project_personal", name: "Personal", color: "#70a7ff", createdAt: "2026-11-10T17:00:00.000Z" },
-    ],
-    tasks: [
-      { id: "task_brief", title: "Draft launch brief", project: "Launch", due: "2026-11-21", priority: "high", completed: false, createdAt: "2026-11-10T17:00:00.000Z" },
-      { id: "task_review", title: "Review user interviews", project: "Launch", due: "2026-11-18", priority: "medium", completed: true, createdAt: "2026-11-10T17:00:00.000Z" },
-    ],
-    notes: [
-      { id: "note_northstar", title: "North-star metric", content: "Track the percentage of users who complete their first workflow.", project: "Launch", createdAt: "2026-11-10T17:00:00.000Z" },
-    ],
-    files: {
-      "inbox/ideas.txt": "Interview synthesis\nOnboarding checklist\nLaunch story",
-      "archive/old-plan.txt": "Archived project plan from the previous sprint.",
-      "README.md": "# FlowPilot workspace\nThis is a safe virtual filesystem.",
-    },
+    version: 2,
+    projects: [],
+    tasks: [],
+    notes: [],
+    files: {},
     audit: [],
     lastSnapshot: null,
   };
+}
+
+export function migrateWorkspace(rawState) {
+  const state = deepClone(rawState);
+  if ((state.version || 1) >= 2) return state;
+
+  const seededProjectIds = new Set(["project_launch", "project_personal"]);
+  const seededTaskIds = new Set(["task_brief", "task_review"]);
+  const seededNoteIds = new Set(["note_northstar"]);
+  state.projects = (state.projects || []).filter((project) => !seededProjectIds.has(project.id));
+  state.tasks = (state.tasks || []).filter((task) => !seededTaskIds.has(task.id));
+  state.notes = (state.notes || []).filter((note) => !seededNoteIds.has(note.id));
+  state.files = state.files || {};
+
+  const seededFiles = {
+    "inbox/ideas.txt": "Interview synthesis\nOnboarding checklist\nLaunch story",
+    "archive/old-plan.txt": "Archived project plan from the previous sprint.",
+    "README.md": "# FlowPilot workspace\nThis is a safe virtual filesystem.",
+  };
+  Object.entries(seededFiles).forEach(([path, content]) => {
+    if (state.files[path] === content) delete state.files[path];
+  });
+
+  state.version = 2;
+  return state;
 }
 
 export function deepClone(value) {
